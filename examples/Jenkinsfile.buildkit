@@ -1,0 +1,48 @@
+/*
+1. Create secret in Jenkins namespace, here for
+kubectl create secret -n devops-tools docker-registry registry-secret \
+   --docker-server="ghcr.io/dmrub" --docker-username=dmrub \
+   --docker-password="GITHUB_KEY" \
+   --docker-email=name@example.com;
+*/
+repo = "https://github.com/dmrub/example-flask-app.git"
+branch = "main"
+
+podTemplate(
+    containers: [
+        containerTemplate(
+            name: 'buildkit',
+            image: 'moby/buildkit:master-rootless',
+            envVars: [envVar(key: 'BUILDKITD_FLAGS', value: '--oci-worker-no-process-sandbox')],
+            command: 'sleep',
+            args: '30d',
+            privileged: true,
+            runAsGroup: '1000',
+            runAsUser: '1000'
+            )
+    ],
+    volumes: [
+        secretVolume(secretName: 'registry-secret', mountPath: '/etc/.secret'),
+    ]
+  ) {
+    node(POD_LABEL) {
+        stage('Prepare') {
+            git branch: "${branch}", url: "${repo}"
+        }
+        stage('Build Container Image') {
+            container('buildkit') {
+                sh """
+                mkdir -p ~/.docker/;
+                ln -s /etc/.secret/.dockerconfigjson ~/.docker/config.json;
+                buildctl-daemonless.sh \
+                  build \
+                  --frontend dockerfile.v0 \
+                  --local context=. \
+                  --local dockerfile=. \
+                  --output type=image,name=ghcr.io/dmrub/example-flask-app:latest,push=true;
+                """
+                milestone(1)
+            }
+        }
+    }
+}
