@@ -1,0 +1,6 @@
+kind: Kustomization
+namespace: "devops-tools"
+bases:
+  - ./base
+resources:
+  - namespace.yaml

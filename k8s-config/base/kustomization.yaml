@@ -1,0 +1,13 @@
+kind: Kustomization
+resources:
+  - service-account-and-rbac.yaml
+  # For volume use either pvc.yaml for the automatically allocated volume with the default storage class
+  - pvc.yaml
+  # Or local storage volume, in which case you need to edit the local-storage-volume.yaml file
+  # and specify the Kubernetes node where the volume should be allocated.
+# - local-storage-volume.yaml
+  - deployment.yaml
+  # For access within the cluster, use service.yaml
+  - service.yaml
+  # For the nodeport service use service-nodeport.yaml
+  # - service-nodeport.yaml
